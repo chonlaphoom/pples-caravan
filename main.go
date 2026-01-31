@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/jroimartin/gocui"
+	mr "pples-caravan/mapregion"
 )
 
 const (
@@ -42,19 +43,18 @@ func main() {
 }
 
 func view(g *gocui.Gui) error {
-	m := newMap()
-	minWidth := m.Cols
-	minHeight := m.Rows
+	m := mr.NewMap()
+	minWidth := m.Pos.Col
+	minHeight := m.Pos.Row
 
 	maxX, maxY := g.Size()
 
-	// top-left
+	buffer := 2
+
 	x0 := OFFSET_X
 	y0 := OFFSET_Y
 
-	bufferX := 2
-	// bottom-right
-	x1 := OFFSET_X + minWidth + bufferX
+	x1 := OFFSET_X + minWidth + buffer
 	y1 := OFFSET_Y + minHeight
 
 	if v, err := g.SetView(VIEW, x0, y0, x1, y1); err != nil {
@@ -63,11 +63,11 @@ func view(g *gocui.Gui) error {
 			return err
 		}
 
-		actualWidth := x1 - x0 - 2
-		actualHeight := y1 - y0 - 2
+		actualWidth := x1 - x0 - buffer
+		actualHeight := y1 - y0 - buffer
 
 		v.Title = fmt.Sprintf("Caravan | View (%d x %d) ", actualWidth, actualHeight)
-		v.Wrap = false
+		v.Wrap = true
 		v.Frame = true
 		v.Editable = false
 		v.Autoscroll = true
@@ -80,7 +80,7 @@ func view(g *gocui.Gui) error {
 				if c == "" {
 					fmt.Fprint(v, "    ")
 				} else {
-					s := c + X
+					s := c + mr.X
 					fmt.Fprintf(v, "[%s]", s)
 				}
 			}
@@ -140,16 +140,16 @@ func setKeybindings(g *gocui.Gui) error {
 		}
 	}
 
-	if err := g.SetKeybinding(VIEW, gocui.KeyCtrlK, gocui.ModNone, move(0, -1)); err != nil {
+	if err := g.SetKeybinding(VIEW, 'k', gocui.ModNone, move(0, -1)); err != nil {
 		return err
 	}
-	if err := g.SetKeybinding(VIEW, gocui.KeyCtrlJ, gocui.ModNone, move(0, 1)); err != nil {
+	if err := g.SetKeybinding(VIEW, 'j', gocui.ModNone, move(0, 1)); err != nil {
 		return err
 	}
-	if err := g.SetKeybinding(VIEW, gocui.KeyCtrlH, gocui.ModNone, move(-1, 0)); err != nil {
+	if err := g.SetKeybinding(VIEW, 'h', gocui.ModNone, move(-1, 0)); err != nil {
 		return err
 	}
-	if err := g.SetKeybinding(VIEW, gocui.KeyCtrlL, gocui.ModNone, move(1, 0)); err != nil {
+	if err := g.SetKeybinding(VIEW, 'l', gocui.ModNone, move(1, 0)); err != nil {
 		return err
 	}
 
