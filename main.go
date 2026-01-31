@@ -3,15 +3,25 @@ package main
 import (
 	"fmt"
 	"log"
+	"os"
 
 	"github.com/jroimartin/gocui"
 )
 
 const (
-	VIEW     = "view"
+	VIEW         = "main"
+	STATUS       = "status"
+	CARAVAN_INFO = "caravan_info"
+
+	// Dogmatic offsets
 	OFFSET_X = 4
-	OFFSET_Y = 4
+	OFFSET_Y = 2
 )
+
+func close(g *gocui.Gui) {
+	g.Close()
+	log.Println("GUI closed successfully")
+}
 
 func main() {
 	g, err := gocui.NewGui(gocui.OutputNormal)
@@ -20,40 +30,134 @@ func main() {
 	}
 	defer close(g)
 
+	g.Cursor = true
 	g.SetManagerFunc(view)
-
-	if err := g.SetKeybinding("", gocui.KeyCtrlC, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
-		return gocui.ErrQuit
-	}); err != nil {
-		log.Fatalln(err)
+	if err := setKeybindings(g); err != nil {
+		log.Println("setKeybindings:", err)
+		return
 	}
-
 	if err := g.MainLoop(); err != nil && err != gocui.ErrQuit {
-		log.Fatalln(err)
+		log.Println("main loop error:", err)
 	}
-}
-
-func close(g *gocui.Gui) {
-	g.Close()
-	log.Println("GUI closed successfully")
 }
 
 func view(g *gocui.Gui) error {
+	m := newMap()
+	minWidth := m.Cols
+	minHeight := m.Rows
+
 	maxX, maxY := g.Size()
-	if v, err := g.SetView(VIEW, OFFSET_X, OFFSET_Y, maxX-OFFSET_X, maxY-OFFSET_Y); err != nil {
+
+	// top-left
+	x0 := OFFSET_X
+	y0 := OFFSET_Y
+
+	bufferX := 2
+	// bottom-right
+	x1 := OFFSET_X + minWidth + bufferX
+	y1 := OFFSET_Y + minHeight
+
+	if v, err := g.SetView(VIEW, x0, y0, x1, y1); err != nil {
 		if err != gocui.ErrUnknownView {
-			log.Fatalln(err)
+			fmt.Fprint(os.Stdout, "SetView error:", err)
 			return err
 		}
-		v.Title = "..."
+
+		actualWidth := x1 - x0 - 2
+		actualHeight := y1 - y0 - 2
+
+		v.Title = fmt.Sprintf("Caravan | View (%d x %d) ", actualWidth, actualHeight)
 		v.Wrap = false
 		v.Frame = true
-		coordinate := fmt.Sprintln("maxX:", maxX, "maxY:", maxY)
+		v.Editable = false
 		v.Autoscroll = true
+		v.SetCursor(0, 0)
 
-		v.Write([]byte("Press Ctrl+C to exit.\n"))
-		v.Write([]byte(coordinate))
-		v.Cursor()
+		_, _ = g.SetCurrentView(VIEW)
+
+		for _, r := range m.Grid {
+			for _, c := range r {
+				if c == "" {
+					fmt.Fprint(v, "    ")
+				} else {
+					s := c + X
+					fmt.Fprintf(v, "[%s]", s)
+				}
+			}
+			fmt.Fprintln(v)
+		}
+	}
+
+	if sv, err := g.SetView(STATUS, OFFSET_X, maxY-3, maxX-OFFSET_X, maxY-1); err != nil {
+		if err != gocui.ErrUnknownView {
+			return err
+		}
+		sv.Frame = false
+		sv.BgColor = gocui.ColorWhite
+		sv.FgColor = gocui.ColorBlack
+	}
+
+	_ = updateStatusPos(g)
+	return nil
+}
+
+func updateStatusPos(g *gocui.Gui) error {
+	v, err := g.View(VIEW)
+	if err != nil || v == nil {
+		return nil
+	}
+	cx, cy := v.Cursor()
+	sv, err := g.View(STATUS)
+	if err != nil || sv == nil {
+		return nil
+	}
+	sv.Clear()
+	ox, oy := v.Origin()
+
+	fmt.Fprintf(sv, "pos: %d,%d", cx, cy)
+	fmt.Fprintf(sv, " | origin: %d,%d", ox, oy)
+	fmt.Fprintf(sv, " | Press Ctrl+C to exit.")
+
+	g.SetRune(ox, oy, ' ', gocui.Attribute(gocui.ModNone), gocui.ColorRed)
+
+	return nil
+}
+
+func setKeybindings(g *gocui.Gui) error {
+	if err := g.SetKeybinding("", gocui.KeyCtrlC, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
+		return gocui.ErrQuit
+	}); err != nil {
+		return err
+	}
+
+	move := func(dx, dy int) func(*gocui.Gui, *gocui.View) error {
+		return func(g *gocui.Gui, v *gocui.View) error {
+			if v == nil {
+				return nil
+			}
+			v.MoveCursor(dx, dy, false)
+			return updateStatusPos(g)
+		}
+	}
+
+	if err := g.SetKeybinding(VIEW, gocui.KeyCtrlK, gocui.ModNone, move(0, -1)); err != nil {
+		return err
+	}
+	if err := g.SetKeybinding(VIEW, gocui.KeyCtrlJ, gocui.ModNone, move(0, 1)); err != nil {
+		return err
+	}
+	if err := g.SetKeybinding(VIEW, gocui.KeyCtrlH, gocui.ModNone, move(-1, 0)); err != nil {
+		return err
+	}
+	if err := g.SetKeybinding(VIEW, gocui.KeyCtrlL, gocui.ModNone, move(1, 0)); err != nil {
+		return err
+	}
+
+	// refresh/redraw
+	if err := g.SetKeybinding("", gocui.KeyCtrlR, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
+		return nil //TODO: call refresh function
+	}); err != nil {
+		return err
 	}
 
 	return nil
