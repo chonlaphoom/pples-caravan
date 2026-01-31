@@ -23,14 +23,14 @@ const (
 
 type MapRegion struct {
 	Grid [][10]string
-	Pos  Position
+	Size Position
 }
 
 type Position struct {
 	Row, Col int
 }
 
-type Province struct {
+type province struct {
 	FullName  string
 	ShortName string
 	Color     string
@@ -38,7 +38,7 @@ type Province struct {
 	Pos Position
 }
 
-var provinces = []Province{
+var provinces = []province{
 	// --- NORTHERN (N)
 	{ShortName: "ชร", Color: N, Pos: Position{Row: 2, Col: 1}, FullName: "เชียงราย"},
 	{ShortName: "ชร", Color: N, Pos: Position{Row: 2, Col: 2}, FullName: "เชียงราย"},
@@ -187,8 +187,8 @@ var provinces = []Province{
 }
 
 var (
-	provinceByFullname = map[string]*Province{}
-	provinceByCoord    = map[int]*Province{}
+	provinceByFullname = map[string]*province{}
+	provinceByCoord    = map[int]*province{}
 	gridCache          [][10]string
 	initGridOnce       sync.Once
 )
@@ -212,7 +212,6 @@ func initCaches() {
 		r := p.Pos.Row
 		c := p.Pos.Col
 		if r < 0 || r >= rows || c < 0 || c >= MAX_COLS {
-			grid[r][c] = strings.Repeat(" ", SPACE_LEN)
 			continue
 		}
 		grid[r][c] = p.Color + p.ShortName
@@ -220,12 +219,12 @@ func initCaches() {
 	gridCache = grid
 }
 
-func GetProvinceByFullname(fullname string) *Province {
+func GetProvinceByFullname(fullname string) *province {
 	initGridOnce.Do(initCaches)
 	return provinceByFullname[fullname]
 }
 
-func GetProvinceAt(row, col int) *Province {
+func GetProvinceAt(row, col int) *province {
 	initGridOnce.Do(initCaches)
 	key := row*MAX_COLS + col
 	return provinceByCoord[key]
@@ -235,7 +234,7 @@ func NewMap() *MapRegion {
 	initGridOnce.Do(initCaches)
 	return &MapRegion{
 		Grid: gridCache,
-		Pos: Position{
+		Size: Position{
 			Row: len(gridCache),
 			Col: MAX_COLS * SPACE_LEN,
 		},

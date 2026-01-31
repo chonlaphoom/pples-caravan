@@ -44,8 +44,8 @@ func main() {
 
 func view(g *gocui.Gui) error {
 	m := mr.NewMap()
-	minWidth := m.Pos.Col
-	minHeight := m.Pos.Row
+	minWidth := m.Size.Col
+	minHeight := m.Size.Row
 
 	maxX, maxY := g.Size()
 
