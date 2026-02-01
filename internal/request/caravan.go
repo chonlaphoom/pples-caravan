@@ -21,8 +21,8 @@ var VehicleNameMap map[string]string
 
 func NewCaravanInfo(url string) *CaravanInfo {
 	var vehicleNameMap = map[string]string{
-		"67005818": "ลูกน้ำเค็ม,"
-		"67006065": "บินหลาดง",
+		"67005818": "ลูกน้ำเค็ม",
+		"67005820": "ฝนใต้",
 		"67006065": "บินหลาดง",
 		"67006066": "นายฮ้อยทมิฬ",
 		"67006067": "คมแฝก",

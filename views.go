@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	req "pples-caravan/internal/request"
@@ -83,7 +84,7 @@ func view(g *gocui.Gui) error {
 			return err
 		}
 		civ.Title = "Caravan Info"
-		civ.Wrap = true
+		civ.Wrap = false
 		civ.Frame = true
 		civ.Editable = false
 		civ.Autoscroll = false
@@ -93,7 +94,7 @@ func view(g *gocui.Gui) error {
 		// TODO: receive url from config
 		caravan := req.NewCaravanInfo("https://storage.googleapis.com/pple-media/election-2569/caravan.json")
 
-		interval := 5
+		interval := 3
 		ticker := time.NewTicker(time.Duration(interval) * time.Second)
 		caravanDone = make(chan struct{})
 		bgWG.Go(func() {
@@ -117,9 +118,45 @@ func view(g *gocui.Gui) error {
 					}
 
 					g.Update(func(g *gocui.Gui) error {
+						civ.Mask = 0
 						civ.Clear()
 						fmt.Fprint(civ, caravan.String())
+						mv, err := g.View(VIEW)
+						if err == nil && mv != nil {
 
+							mv.Clear()
+							// TODO: abstract map redraw
+							for ri, r := range m.Grid {
+								for ci, c := range r {
+									if c == "" {
+										fmt.Fprint(mv, "    ")
+									} else {
+										isHighlighted := false
+										for _, t := range caravan.Data.Data {
+											provinceSplitted := strings.SplitAfter(t.AddressT, "จ.")
+											if len(provinceSplitted) < 2 || provinceSplitted[1] == "" {
+												return nil
+											}
+											provinceName := strings.TrimSpace(provinceSplitted[1])
+											province := mr.GetProvinceByFullname(provinceName)
+
+											if province.Pos.Col == ci && province.Pos.Row == ri {
+												// highlight
+												fmt.Fprintf(mv, fmt.Sprintf("%s*", province.ShortName))
+												isHighlighted = true
+												break
+											}
+										}
+										if isHighlighted {
+											continue
+										}
+										s := c + mr.X
+										fmt.Fprintf(mv, "[%s]", s)
+									}
+								}
+								fmt.Fprintln(mv)
+							}
+						}
 						return nil
 					})
 				}
@@ -147,8 +184,7 @@ func updateStatusPos(g *gocui.Gui) error {
 	fmt.Fprintf(sv, "pos: %d,%d", cx, cy)
 	fmt.Fprintf(sv, " | origin: %d,%d", ox, oy)
 	fmt.Fprintf(sv, " | Press Ctrl+C to exit.")
-
-	g.SetRune(ox, oy, ' ', gocui.Attribute(gocui.ModNone), gocui.ColorRed)
+	fmt.Fprintf(sv, " | Press Ctrl+R to refresh.")
 
 	return nil
 }
@@ -184,6 +220,28 @@ func setKeybindings(g *gocui.Gui) error {
 		return err
 	}
 	if err := g.SetKeybinding("", 'l', gocui.ModNone, move(1, 0)); err != nil {
+		return err
+	}
+
+	// refresh caravan info view
+	if err := g.SetKeybinding(CARAVAN_INFO, gocui.KeyCtrlR, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
+		civ, err := g.View(CARAVAN_INFO)
+		if civ == nil || err != nil {
+			return nil
+		}
+
+		g.Update(func(g *gocui.Gui) error {
+			content := civ.Buffer()
+			if content == "" {
+				return nil
+			}
+			civ.Clear()
+			// TODO: redraw entire frame
+			fmt.Fprint(civ, "refreshing...\n")
+			return nil
+		})
+		return nil
+	}); err != nil {
 		return err
 	}
 
