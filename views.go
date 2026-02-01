@@ -105,6 +105,7 @@ func view(g *gocui.Gui) error {
 					return
 				case <-ticker.C:
 					_, _, err := caravan.MakeRequest()
+
 					if err != nil {
 						fmt.Fprintf(civ, "Error fetching caravan info: %v\n", err)
 						// retry on next tick
@@ -120,6 +121,10 @@ func view(g *gocui.Gui) error {
 					g.Update(func(g *gocui.Gui) error {
 						civ.Mask = 0
 						civ.Clear()
+						if caravan.Data.OutsideAllowedHours {
+							fmt.Fprintf(civ, "%s", caravan.Data.Message)
+							return nil
+						}
 						fmt.Fprint(civ, caravan.String())
 						mv, err := g.View(VIEW)
 						if err == nil && mv != nil {

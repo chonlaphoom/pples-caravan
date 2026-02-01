@@ -82,11 +82,13 @@ func (c *CaravanInfo) MakeRequest() (int, time.Duration, error) {
 }
 
 type CaravanResponse struct {
-	Data      []VehicleData `json:"data"`
-	Count     int           `json:"count"`
-	Filtered  int           `json:"filtered"`
-	Total     int           `json:"total"`
-	Timestamp string        `json:"timestamp"`
+	Data                []VehicleData `json:"data"`
+	Count               int           `json:"count"`
+	Filtered            int           `json:"filtered"`
+	Total               int           `json:"total"`
+	Timestamp           string        `json:"timestamp"`
+	Message             string        `json:"message"`
+	OutsideAllowedHours bool          `json:"outsideAllowedHours"`
 }
 
 type VehicleData struct {
