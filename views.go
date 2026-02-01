@@ -131,6 +131,7 @@ func view(g *gocui.Gui) error {
 
 							mv.Clear()
 							// TODO: abstract map redraw
+							// meh I don't like this part, optimization later
 							for ri, r := range m.Grid {
 								for ci, c := range r {
 									if c == "" {
