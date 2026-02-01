@@ -2,7 +2,7 @@ People's Party Caravan — Minimal Terminal Tracker
 
 Hello,
 
-This is a small, minimal terminal UI (TUI) for quick, fun real-time checks of the People's Party (พรรคประชาชน) caravan vehicles for 2026 election. The official web tracker streams all caravan lines live at:
+This is a small, minimal terminal UI (TUI) for quick, fun real-time checks of the People's Party (พรรคประชาชน) caravan vehicles for 2026 election. The official web tracker streams (technically  request intervally via https) all caravan lines live at:
 
 https://election69.peoplesparty.or.th/
 
